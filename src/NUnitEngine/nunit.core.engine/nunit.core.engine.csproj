@@ -87,6 +87,9 @@
     <Compile Include="..\nunit.engine.api\Extensibility\IFrameworkDriver.cs">
       <Link>Extensibility\IFrameworkDriver.cs</Link>
     </Compile>
+    <Compile Include="..\nunit.engine.api\IRuntimeFrameworkService.cs">
+      <Link>IRuntimeFrameworkService.cs</Link>
+    </Compile>
     <Compile Include="..\nunit.engine.api\IServiceLocator.cs">
       <Link>IServiceLocator.cs</Link>
     </Compile>
@@ -135,6 +138,12 @@
     <Compile Include="..\nunit.engine\Internal\ResultHelper.cs">
       <Link>Internal\ResultHelper.cs</Link>
     </Compile>
+    <Compile Include="..\nunit.engine\Internal\ServerBase.cs">
+      <Link>Internal\ServerBase.cs</Link>
+    </Compile>
+    <Compile Include="..\nunit.engine\Internal\ServerUtilities.cs">
+      <Link>Internal\ServerUtilities.cs</Link>
+    </Compile>
     <Compile Include="..\nunit.engine\Internal\SettingsGroup.cs">
       <Link>Internal\SettingsGroup.cs</Link>
     </Compile>
@@ -143,6 +152,12 @@
     </Compile>
     <Compile Include="..\nunit.engine\IService.cs">
       <Link>IService.cs</Link>
+    </Compile>
+    <Compile Include="..\nunit.engine\ITestAgency.cs">
+      <Link>ITestAgency.cs</Link>
+    </Compile>
+    <Compile Include="..\nunit.engine\ITestAgent.cs">
+      <Link>ITestAgent.cs</Link>
     </Compile>
     <Compile Include="..\nunit.engine\ITestEngineRunner.cs">
       <Link>Internal\ITestEngineRunner.cs</Link>
@@ -162,11 +177,17 @@
     <Compile Include="..\nunit.engine\Runners\MasterTestRunner.cs">
       <Link>Runners\MasterTestRunner.cs</Link>
     </Compile>
+    <Compile Include="..\nunit.engine\Runners\ProcessRunner.cs">
+      <Link>Runners\ProcessRunner.cs</Link>
+    </Compile>
     <Compile Include="..\nunit.engine\Runners\TestDomainRunner.cs">
       <Link>Runners\TestDomainRunner.cs</Link>
     </Compile>
     <Compile Include="..\nunit.engine\RunTestsCallbackHandler.cs">
       <Link>RunTestsCallbackHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\nunit.engine\RuntimeFramework.cs">
+      <Link>RuntimeFramework.cs</Link>
     </Compile>
     <Compile Include="..\nunit.engine\ServiceContext.cs">
       <Link>ServiceContext.cs</Link>
@@ -185,6 +206,9 @@
     </Compile>
     <Compile Include="..\nunit.engine\Services\SettingsService.cs">
       <Link>Services\SettingsService.cs</Link>
+    </Compile>
+    <Compile Include="..\nunit.engine\Services\TestAgency.cs">
+      <Link>Services\TestAgency.cs</Link>
     </Compile>
     <Compile Include="..\nunit.engine\TestEngine.cs">
       <Link>TestEngine.cs</Link>
