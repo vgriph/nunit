@@ -29,9 +29,11 @@ using System.Globalization;
 namespace NUnit.ConsoleRunner.Utilities
 {
     using System;
+    using System.Threading;
 
     internal class TeamCityServiceMessagePublisher
     {
+        private readonly ReaderWriterLock _refsLock = new ReaderWriterLock();
         private readonly TextWriter _outWriter;
         private readonly Dictionary<string, string> _refs = new Dictionary<string, string>();
         private int _blockCounter;
@@ -63,9 +65,10 @@ namespace NUnit.ConsoleRunner.Utilities
             messageName = messageName.ToLowerInvariant();
             if (messageName == "start-run")
             {
-                _refs.Clear();
+                ClearRefs();
+
                 return;
-            }           
+            }
 
             var fullName = message.GetAttribute("fullname");
             if (string.IsNullOrEmpty(fullName))
@@ -102,10 +105,10 @@ namespace NUnit.ConsoleRunner.Utilities
                 }
             }
 
-            switch (messageName.ToLowerInvariant())
+            switch (messageName)
             {
                 case "start-suite":
-                    _refs[id] = parentId;
+                    SetParent(id, parentId);
                     // NUnit 3 case
                     if (parentId == string.Empty)
                     {
@@ -115,7 +118,7 @@ namespace NUnit.ConsoleRunner.Utilities
                     // NUnit 2 case
                     if (parentId == null)
                     {
-                        if (_blockCounter++ == 0)
+                        if (Interlocked.Increment(ref _blockCounter) == 1)
                         {
                             _rootFlowId = id;
                             OnRootSuiteStart(id, fullName);
@@ -125,7 +128,7 @@ namespace NUnit.ConsoleRunner.Utilities
                     break;
 
                 case "test-suite":
-                    _refs.Remove(id);
+                    ClearParent(id);
                     // NUnit 3 case
                     if (parentId == string.Empty)
                     {
@@ -135,7 +138,7 @@ namespace NUnit.ConsoleRunner.Utilities
                     // NUnit 2 case
                     if (parentId == null)
                     {
-                        if (--_blockCounter == 0)
+                        if (Interlocked.Decrement(ref _blockCounter) == 0)
                         {
                             _rootFlowId = null;
                             OnRootSuiteFinish(id, fullName);
@@ -145,7 +148,7 @@ namespace NUnit.ConsoleRunner.Utilities
                     break;
 
                 case "start-test":
-                    _refs[id] = parentId;
+                    SetParent(id, parentId);
                     if (id != flowId && parentId != null)
                     {
                         OnFlowStarted(id, flowId);
@@ -157,7 +160,7 @@ namespace NUnit.ConsoleRunner.Utilities
                 case "test-case":
                     try
                     {
-                        _refs.Remove(id);
+                        ClearParent(id);
                         var result = message.GetAttribute("result");
                         if (string.IsNullOrEmpty(result))
                         {
@@ -195,6 +198,45 @@ namespace NUnit.ConsoleRunner.Utilities
             }            
         }
 
+        private void ClearParent(string id)
+        {
+            _refsLock.AcquireWriterLock(Timeout.Infinite);
+            try
+            {
+                _refs.Remove(id);
+            }
+            finally
+            {
+                _refsLock.ReleaseWriterLock();
+            }            
+        }
+
+        private void SetParent(string id, string parentId)
+        {
+            _refsLock.AcquireWriterLock(Timeout.Infinite);
+            try
+            {
+                _refs[id] = parentId;
+            }
+            finally
+            {
+                _refsLock.ReleaseWriterLock();
+            }
+        }
+
+        private void ClearRefs()
+        {
+            _refsLock.AcquireWriterLock(Timeout.Infinite);
+            try
+            {
+                _refs.Clear();
+            }
+            finally
+            {
+                _refsLock.ReleaseWriterLock();
+            }
+        }
+
         private bool TryFindParentId(string id, out string parentId)
         {
             if (id == null)
@@ -202,7 +244,15 @@ namespace NUnit.ConsoleRunner.Utilities
                 throw new ArgumentNullException("id");
             }
 
-            return _refs.TryGetValue(id, out parentId) && !string.IsNullOrEmpty(parentId);
+            _refsLock.AcquireReaderLock(Timeout.Infinite);
+            try
+            {
+                return _refs.TryGetValue(id, out parentId) && !string.IsNullOrEmpty(parentId);
+            }
+            finally
+            {
+                _refsLock.ReleaseReaderLock();
+            }
         }
 
         private bool TryFindRootId(string id, out string rootId)
@@ -212,9 +262,17 @@ namespace NUnit.ConsoleRunner.Utilities
                 throw new ArgumentNullException("id");
             }
 
-            while (TryFindParentId(id, out rootId) && id != rootId)
+            _refsLock.AcquireReaderLock(Timeout.Infinite);
+            try
             {
-                id = rootId;
+                while (TryFindParentId(id, out rootId) && id != rootId)
+                {
+                    id = rootId;
+                }
+            }
+            finally
+            {
+                _refsLock.ReleaseReaderLock();
             }
 
             rootId = id;
@@ -378,9 +436,9 @@ namespace NUnit.ConsoleRunner.Utilities
                        .Replace("'", "|'")
                        .Replace("\n", "|n")
                        .Replace("\r", "|r")
-                       .Replace(char.ConvertFromUtf32(int.Parse("0086", NumberStyles.HexNumber)), "|x")
-                       .Replace(char.ConvertFromUtf32(int.Parse("2028", NumberStyles.HexNumber)), "|l")
-                       .Replace(char.ConvertFromUtf32(int.Parse("2029", NumberStyles.HexNumber)), "|p")
+                       .Replace(char.ConvertFromUtf32(0x0086), "|x")
+                       .Replace(char.ConvertFromUtf32(0x2028), "|l")
+                       .Replace(char.ConvertFromUtf32(0x2029), "|p")
                        .Replace("[", "|[")
                        .Replace("]", "|]")
                 : null;
